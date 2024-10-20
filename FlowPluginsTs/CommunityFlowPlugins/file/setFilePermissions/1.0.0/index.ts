@@ -1,3 +1,4 @@
+  outputs: [
 import { promises as fsp } from 'fs';
 import {
   IpluginDetails,
