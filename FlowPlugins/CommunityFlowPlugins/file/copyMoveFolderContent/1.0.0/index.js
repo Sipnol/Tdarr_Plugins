@@ -9,12 +9,12 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 var __generator = (this && this.__generator) || function (thisArg, body) {
-    var _ = { label: 0, sent: function() { if (t[0] & 1) throw t[1]; return t[1]; }, trys: [], ops: [] }, f, y, t, g = Object.create((typeof Iterator === "function" ? Iterator : Object).prototype);
-    return g.next = verb(0), g["throw"] = verb(1), g["return"] = verb(2), typeof Symbol === "function" && (g[Symbol.iterator] = function() { return this; }), g;
+    var _ = { label: 0, sent: function() { if (t[0] & 1) throw t[1]; return t[1]; }, trys: [], ops: [] }, f, y, t, g;
+    return g = { next: verb(0), "throw": verb(1), "return": verb(2) }, typeof Symbol === "function" && (g[Symbol.iterator] = function() { return this; }), g;
     function verb(n) { return function (v) { return step([n, v]); }; }
     function step(op) {
         if (f) throw new TypeError("Generator is already executing.");
-        while (g && (g = 0, op[0] && (_ = 0)), _) try {
+        while (_) try {
             if (f = 1, y && (t = op[0] & 2 ? y["return"] : op[0] ? y["throw"] || ((t = y["return"]) && t.call(y), 0) : y.next) && !(t = t.call(y, op[1])).done) return t;
             if (y = 0, t) op = [op[0] & 2, t.value];
             switch (op[0]) {
@@ -150,31 +150,33 @@ var details = function () { return ({
     ],
 }); };
 exports.details = details;
-var doOperation = function (_a) { return __awaiter(void 0, [_a], void 0, function (_b) {
-    var args = _b.args, sourcePath = _b.sourcePath, destinationPath = _b.destinationPath, operation = _b.operation;
-    return __generator(this, function (_c) {
-        switch (_c.label) {
-            case 0:
-                args.jobLog("Input path: ".concat(sourcePath));
-                args.jobLog("Output path: ".concat(destinationPath));
-                if (!(sourcePath === destinationPath)) return [3 /*break*/, 1];
-                args.jobLog("Input and output path are the same, skipping ".concat(operation));
-                return [3 /*break*/, 3];
-            case 1:
-                args.deps.fsextra.ensureDirSync((0, fileUtils_1.getFileAbosluteDir)(destinationPath));
-                return [4 /*yield*/, (0, fileMoveOrCopy_1.default)({
-                        operation: operation,
-                        sourcePath: sourcePath,
-                        destinationPath: destinationPath,
-                        args: args,
-                    })];
-            case 2:
-                _c.sent();
-                _c.label = 3;
-            case 3: return [2 /*return*/];
-        }
+var doOperation = function (_a) {
+    var args = _a.args, sourcePath = _a.sourcePath, destinationPath = _a.destinationPath, operation = _a.operation;
+    return __awaiter(void 0, void 0, void 0, function () {
+        return __generator(this, function (_b) {
+            switch (_b.label) {
+                case 0:
+                    args.jobLog("Input path: ".concat(sourcePath));
+                    args.jobLog("Output path: ".concat(destinationPath));
+                    if (!(sourcePath === destinationPath)) return [3 /*break*/, 1];
+                    args.jobLog("Input and output path are the same, skipping ".concat(operation));
+                    return [3 /*break*/, 3];
+                case 1:
+                    args.deps.fsextra.ensureDirSync((0, fileUtils_1.getFileAbosluteDir)(destinationPath));
+                    return [4 /*yield*/, (0, fileMoveOrCopy_1.default)({
+                            operation: operation,
+                            sourcePath: sourcePath,
+                            destinationPath: destinationPath,
+                            args: args,
+                        })];
+                case 2:
+                    _b.sent();
+                    _b.label = 3;
+                case 3: return [2 /*return*/];
+            }
+        });
     });
-}); };
+};
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 var plugin = function (args) { return __awaiter(void 0, void 0, void 0, function () {
     var lib, _a, keepRelativePath, allFiles, sourceDirectory, outputDirectory, copyOrMove, fileExtensions, outputPath, subStem, sourceDir, filesInDir, i;

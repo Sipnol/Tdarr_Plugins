@@ -1,0 +1,2 @@
+#!/bin/bash
+tsc && rsync -a /home/psusen/Tdarr_Plugins/ 192.168.1.50:/home/psusen/Tdarr_Plugins && ssh 192.168.1.50 sudo cp -r Tdarr_Plugins/* /home/tdarr/Tdarr/Tdarr_Plugins/

@@ -82,6 +82,7 @@ export interface IupdateWorker {
 export interface IffmpegCommandStream extends Istreams {
     removed: boolean,
     forceEncoding: boolean,
+    added: boolean,
     inputArgs: string[],
     outputArgs: string[],
 }

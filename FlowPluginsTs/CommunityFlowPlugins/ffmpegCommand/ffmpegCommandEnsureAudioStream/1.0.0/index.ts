@@ -32,6 +32,17 @@ const details = (): IpluginDetails => ({
         'Tdarr will add this name to the metadata title of the audio stream.',
     },
     {
+      label: 'Delete Source when it is redundant',
+      name: 'deleteSource',
+      type: 'boolean',
+      defaultValue: 'false',
+      inputUI: {
+        type: 'switch',
+      },
+      tooltip:
+        'Toggle whether the source stream should be deleted if the Stream gets Transcoded with the same channel count',
+    },
+    {
       label: 'Audio Encoder',
       name: 'audioEncoder',
       type: 'string',
@@ -194,6 +205,43 @@ const details = (): IpluginDetails => ({
       tooltip:
         'Specify the audio filter for upmixing to desired channels',
     },
+    {
+      label: 'Enable Filter',
+      name: 'enableFilter',
+      type: 'boolean',
+      defaultValue: 'false',
+      inputUI: {
+        type: 'switch',
+      },
+      tooltip:
+        'Toggle whether to enable an audio filter',
+    },
+    {
+      label: 'Filter to run',
+      name: 'normalFilter',
+      type: 'string',
+      defaultValue: '',
+      inputUI: {
+        type: 'text',
+        displayConditions: {
+          logic: 'AND',
+          sets: [
+            {
+              logic: 'AND',
+              inputs: [
+                {
+                  name: 'enableFilter',
+                  value: 'true',
+                  condition: '===',
+                },
+              ],
+            },
+          ],
+        },
+      },
+      tooltip:
+        'Specify the audio filter for modifying selected channels',
+    },
   ],
   outputs: [
     {
@@ -232,7 +280,10 @@ const attemptMakeStream = ({
   const samplerate = String(args.inputs.samplerate);
   const enableUpmixing = Boolean(args.inputs.enableUpmixing);
   const upmixingFilter = String(args.inputs.upmixingFilter);
+  const enableFilter = Boolean(args.inputs.enableFilter);
+  const normalFilter = String(args.inputs.normalFilter);
   const streamName = String(args.inputs.streamName);
+  const deleteSource = String(args.inputs.deleteSource);
 
   const langMatch = (stream: IffmpegCommandStream) => (
     (langTag === 'und'
@@ -245,6 +296,7 @@ const attemptMakeStream = ({
   const streamsWithLangTag = streams.filter((stream) => {
     if (
       stream.codec_type === 'audio'
+        && stream.added === false
         && langMatch(stream)
     ) {
       return true;
@@ -261,6 +313,7 @@ const attemptMakeStream = ({
   // get the stream with the highest channel count
   const streamWithHighestChannel = streamsWithLangTag.reduce(getHighest);
   const highestChannelCount = Number(streamWithHighestChannel.channels);
+  const indexOfHighestChannel = streams.indexOf(streamWithHighestChannel);
 
   let targetChannels = 0;
   if (wantedChannelCount <= highestChannelCount) {
@@ -275,6 +328,7 @@ const attemptMakeStream = ({
     targetChannels = highestChannelCount;
     args.jobLog(`The wanted channel count ${wantedChannelCount} is higher than the`
       + ` highest available channel count (${streamWithHighestChannel.channels}). \n`);
+    return true;
   }
 
   const hasStreamAlready = streams.filter((stream) => {
@@ -295,13 +349,23 @@ const attemptMakeStream = ({
     return true;
   }
 
+  if(deleteSource && targetChannels === highestChannelCount) {
+    args.jobLog(`Removing source at ${indexOfHighestChannel}`);
+    streams[indexOfHighestChannel].removed = true;
+  }
+
   args.jobLog(`Adding ${langTag} stream in ${audioEncoder}, ${targetChannels} channels \n`);
 
   const streamCopy: IffmpegCommandStream = JSON.parse(JSON.stringify(streamWithHighestChannel));
   streamCopy.removed = false;
+  streamCopy.added = true;
   streamCopy.index = streams.length;
   if (targetChannels > highestChannelCount && upmixingFilter !== '') {
     streamCopy.outputArgs.push('-filter_complex', `[${streamCopy.mapArgs[1]}]${upmixingFilter}[a_{outputIndex}]`);
+    streamCopy.outputArgs.push('-map', '[a_{outputIndex}]');
+    streamCopy.mapArgs = [];
+  } else if(enableFilter && normalFilter !== ''){
+    streamCopy.outputArgs.push('-filter_complex', `[${streamCopy.mapArgs[1]}]${normalFilter}[a_{outputIndex}]`);
     streamCopy.outputArgs.push('-map', '[a_{outputIndex}]');
     streamCopy.mapArgs = [];
   } else {

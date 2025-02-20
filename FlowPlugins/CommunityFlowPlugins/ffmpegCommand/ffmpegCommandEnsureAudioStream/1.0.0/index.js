@@ -27,6 +27,16 @@ var details = function () { return ({
             tooltip: 'Tdarr will add this name to the metadata title of the audio stream.',
         },
         {
+            label: 'Delete Source when it is redundant',
+            name: 'deleteSource',
+            type: 'boolean',
+            defaultValue: 'false',
+            inputUI: {
+                type: 'switch',
+            },
+            tooltip: 'Toggle whether the source stream should be deleted if the Stream gets Transcoded with the same channel count',
+        },
+        {
             label: 'Audio Encoder',
             name: 'audioEncoder',
             type: 'string',
@@ -180,6 +190,41 @@ var details = function () { return ({
             },
             tooltip: 'Specify the audio filter for upmixing to desired channels',
         },
+        {
+            label: 'Enable Filter',
+            name: 'enableFilter',
+            type: 'boolean',
+            defaultValue: 'false',
+            inputUI: {
+                type: 'switch',
+            },
+            tooltip: 'Toggle whether to enable an audio filter',
+        },
+        {
+            label: 'Filter to run',
+            name: 'normalFilter',
+            type: 'string',
+            defaultValue: '',
+            inputUI: {
+                type: 'text',
+                displayConditions: {
+                    logic: 'AND',
+                    sets: [
+                        {
+                            logic: 'AND',
+                            inputs: [
+                                {
+                                    name: 'enableFilter',
+                                    value: 'true',
+                                    condition: '===',
+                                },
+                            ],
+                        },
+                    ],
+                },
+            },
+            tooltip: 'Specify the audio filter for modifying selected channels',
+        },
     ],
     outputs: [
         {
@@ -204,7 +249,10 @@ var attemptMakeStream = function (_a) {
     var samplerate = String(args.inputs.samplerate);
     var enableUpmixing = Boolean(args.inputs.enableUpmixing);
     var upmixingFilter = String(args.inputs.upmixingFilter);
+    var enableFilter = Boolean(args.inputs.enableFilter);
+    var normalFilter = String(args.inputs.normalFilter);
     var streamName = String(args.inputs.streamName);
+    var deleteSource = String(args.inputs.deleteSource);
     var langMatch = function (stream) {
         var _a;
         return ((langTag === 'und'
@@ -214,6 +262,7 @@ var attemptMakeStream = function (_a) {
     // filter streams to only include audio streams with the specified lang tag
     var streamsWithLangTag = streams.filter(function (stream) {
         if (stream.codec_type === 'audio'
+            && stream.added === false
             && langMatch(stream)) {
             return true;
         }
@@ -226,6 +275,7 @@ var attemptMakeStream = function (_a) {
     // get the stream with the highest channel count
     var streamWithHighestChannel = streamsWithLangTag.reduce(getHighest);
     var highestChannelCount = Number(streamWithHighestChannel.channels);
+    var indexOfHighestChannel = streams.indexOf(streamWithHighestChannel);
     var targetChannels = 0;
     if (wantedChannelCount <= highestChannelCount) {
         targetChannels = wantedChannelCount;
@@ -241,6 +291,7 @@ var attemptMakeStream = function (_a) {
         targetChannels = highestChannelCount;
         args.jobLog("The wanted channel count ".concat(wantedChannelCount, " is higher than the")
             + " highest available channel count (".concat(streamWithHighestChannel.channels, "). \n"));
+        return true;
     }
     var hasStreamAlready = streams.filter(function (stream) {
         if (stream.codec_type === 'audio'
@@ -255,12 +306,22 @@ var attemptMakeStream = function (_a) {
         args.jobLog("File already has ".concat(langTag, " stream in ").concat(audioEncoder, ", ").concat(targetChannels, " channels \n"));
         return true;
     }
+    if (deleteSource && targetChannels === highestChannelCount) {
+        args.jobLog("Removing source at ".concat(indexOfHighestChannel));
+        streams[indexOfHighestChannel].removed = true;
+    }
     args.jobLog("Adding ".concat(langTag, " stream in ").concat(audioEncoder, ", ").concat(targetChannels, " channels \n"));
     var streamCopy = JSON.parse(JSON.stringify(streamWithHighestChannel));
     streamCopy.removed = false;
+    streamCopy.added = true;
     streamCopy.index = streams.length;
     if (targetChannels > highestChannelCount && upmixingFilter !== '') {
         streamCopy.outputArgs.push('-filter_complex', "[".concat(streamCopy.mapArgs[1], "]").concat(upmixingFilter, "[a_{outputIndex}]"));
+        streamCopy.outputArgs.push('-map', '[a_{outputIndex}]');
+        streamCopy.mapArgs = [];
+    }
+    else if (enableFilter && normalFilter !== '') {
+        streamCopy.outputArgs.push('-filter_complex', "[".concat(streamCopy.mapArgs[1], "]").concat(normalFilter, "[a_{outputIndex}]"));
         streamCopy.outputArgs.push('-map', '[a_{outputIndex}]');
         streamCopy.mapArgs = [];
     }

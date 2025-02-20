@@ -46,7 +46,7 @@ var plugin = function (args) {
     var ffmpegCommand = {
         init: true,
         inputFiles: [],
-        streams: JSON.parse(JSON.stringify(args.inputFileObj.ffProbeData.streams)).map(function (stream) { return (__assign(__assign({}, stream), { removed: false, mapArgs: [
+        streams: JSON.parse(JSON.stringify(args.inputFileObj.ffProbeData.streams)).map(function (stream) { return (__assign(__assign({}, stream), { added: false, removed: false, mapArgs: [
                 '-map',
                 "0:".concat(stream.index),
             ], inputArgs: [], outputArgs: [] })); }),

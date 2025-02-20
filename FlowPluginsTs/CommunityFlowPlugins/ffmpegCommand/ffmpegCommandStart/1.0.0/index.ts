@@ -44,6 +44,7 @@ const plugin = (args:IpluginInputArgs):IpluginOutputArgs => {
     inputFiles: [],
     streams: JSON.parse(JSON.stringify(args.inputFileObj.ffProbeData.streams)).map((stream:Istreams) => ({
       ...stream,
+      added: false,
       removed: false,
       mapArgs: [
         '-map',
